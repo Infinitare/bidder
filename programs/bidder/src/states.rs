@@ -69,7 +69,13 @@ pub const PAGES_BASE: usize = 8 + 4;
 #[account]
 pub struct Page {
     pub offset_entries: u64,
-    pub entries: Vec<(Pubkey, u64)>,
+    pub entries: Vec<PageEntry>,
+}
+
+#[account]
+pub struct PageEntry {
+    pub user: Pubkey,
+    pub amount: u64,
 }
 
 pub const PAGE_ENTRY: usize = 32 + 8;

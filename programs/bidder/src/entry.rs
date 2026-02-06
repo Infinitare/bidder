@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::transfer;
-use crate::states::{Pool, User, POOL_SIZE, USER_SIZE, PAGE_BASE, PAGES_BASE, ErrorCode, Page, PAGE_ENTRY, Pages, PAGES_ENTRY};
+use crate::states::{Pool, User, POOL_SIZE, USER_SIZE, PAGE_BASE, PAGES_BASE, ErrorCode, Page, PAGE_ENTRY, Pages, PAGES_ENTRY, PageEntry};
 
 #[derive(Accounts)]
 #[instruction(amount: u64, day_id: i64)]
@@ -105,12 +105,12 @@ pub fn entry(ctx: Context<Entry>, amount: u64, day_id: i64) -> Result<()> {
 
     let pool = &mut ctx.accounts.pool;
     let page = &mut ctx.accounts.page;
-    
+
     if page.entries.is_empty() {
         page.offset_entries = pool.total_entries;
     }
     pool.total_entries = pool.total_entries.checked_add(amount).ok_or(ErrorCode::Overflow)?;
-    
+
     let new_size = PAGE_ENTRY * (page.entries.len() + 1) + PAGE_BASE;
     realloc_to_fit(
         &ctx.accounts.signer.to_account_info(),
@@ -119,7 +119,10 @@ pub fn entry(ctx: Context<Entry>, amount: u64, day_id: i64) -> Result<()> {
         new_size
     )?;
 
-    page.entries.push((ctx.accounts.signer.key(), amount));
+    page.entries.push(PageEntry {
+        user: ctx.accounts.signer.key(),
+        amount,
+    });
 
     let pages = &mut ctx.accounts.pages;
     let entry = pages.entries.get_mut(pool.current_page as usize);

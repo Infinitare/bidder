@@ -105,7 +105,7 @@ export default function BidDialog() {
       );
 
       console.log(pagePda, userPda, pagesPda, poolPda);
-      const amountBN = new BN(amountNumber * 1e9);
+      const amountBN = new BN(amountNumber);
       const dayIdBN = new BN(dayId);
       const tx = await program.methods
         .entry(amountBN, dayIdBN)

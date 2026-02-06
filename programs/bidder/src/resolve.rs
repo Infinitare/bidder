@@ -28,10 +28,10 @@ pub fn resolve(ctx: Context<Resolve>) -> Result<()> {
     let page = &mut ctx.accounts.page;
 
     let mut current_count = page.offset_entries;
-    for (user_key, amount) in page.entries.iter() {
-        current_count += *amount;
+    for entry in page.entries.iter() {
+        current_count += entry.amount;
         if current_count >= pool.winning_entry {
-            pool.winner = *user_key;
+            pool.winner = entry.user;
             pool.status = 3;
             break;
         }

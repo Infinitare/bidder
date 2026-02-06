@@ -64,6 +64,7 @@ export default function Home() {
         <a
           className={"text-sm underline-offset-4 hover:underline"}
           href={"https://github.com/Infinitare/bidder"}
+          target={"_blank"}
         >
           Protocol
         </a>
