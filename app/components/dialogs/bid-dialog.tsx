@@ -123,10 +123,11 @@ export default function BidDialog() {
 
       const txSig = await sendAndConfirmTx(tx);
       await Promise.any([refetchPoolSize(), refetchUserInvest()]);
-      toast.success("Transaction confirmed! " + txSig, {
+      toast.success("Transaction confirmed!", {
         description: (
           <div>
             Your bid has been successfully placed.
+            <br />
             <a
               className={"text-sm underline-offset-4 hover:underline"}
               href={"https://solscan.io/tx/" + txSig}

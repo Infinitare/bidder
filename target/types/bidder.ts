@@ -535,6 +535,16 @@ export type Bidder = {
       "code": 6011,
       "name": "randomnessValueError",
       "msg": "The provided randomness value is invalid"
+    },
+    {
+      "code": 6012,
+      "name": "invalidAccountOwner",
+      "msg": "The provided account owner is invalid"
+    },
+    {
+      "code": 6013,
+      "name": "invalidAccountState",
+      "msg": "The provided account state is invalid"
     }
   ],
   "types": [

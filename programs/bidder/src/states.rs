@@ -42,6 +42,12 @@ pub enum ErrorCode {
 
     #[msg("The provided randomness value is invalid")]
     RandomnessValueError,
+
+    #[msg("The provided account owner is invalid")]
+    InvalidAccountOwner,
+
+    #[msg("The provided account state is invalid")]
+    InvalidAccountState
 }
 
 #[account]
@@ -60,6 +66,7 @@ pub struct Pool {
 pub const POOL_SIZE: usize = 8 + 1 + 8 + 8 + 8 + 8 + 32 + 8 + 8 + 32;
 
 #[account]
+#[derive(Default)]
 pub struct Pages {
     pub entries: Vec<u64>,
 }
@@ -68,12 +75,14 @@ pub const PAGES_ENTRY: usize = 8;
 pub const PAGES_BASE: usize = 8 + 4;
 
 #[account]
+#[derive(Default)]
 pub struct Page {
     pub offset_entries: u64,
     pub entries: Vec<PageEntry>,
 }
 
 #[account]
+#[derive(Default)]
 pub struct PageEntry {
     pub user: Pubkey,
     pub amount: u64,
