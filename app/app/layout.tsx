@@ -19,7 +19,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Bidder.io - Win it all",
+  title: "Bidder - Win it all",
   description:
     "Win the pot every 24 hours – completely on-chain and decentralized.",
 };
