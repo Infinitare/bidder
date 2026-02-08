@@ -61,11 +61,11 @@ pub fn payout(ctx: Context<Payout>) -> Result<()> {
         RESOLVER_STATIC_FEE
     };
 
-    let day_id = pool.day_id.to_le_bytes();
+    let pool_key = pool.key();
     let seeds: &[&[u8]] = &[
-        b"pool",
-        day_id.as_ref(),
-        &[ctx.bumps.pool],
+        b"vault",
+        pool_key.as_ref(),
+        &[ctx.bumps.vault],
     ];
 
     anchor_lang::system_program::transfer(
