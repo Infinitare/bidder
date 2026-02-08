@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
-use switchboard_on_demand::{RandomnessAccountData, SWITCHBOARD_PROGRAM_ID};
-use crate::states::{Pool, ErrorCode, Pages};
+use switchboard_on_demand::{RandomnessAccountData, ON_DEMAND_MAINNET_PID};
+use crate::states::{Pool, ErrorCode};
 
 #[derive(Accounts)]
 pub struct Close<'info> {
@@ -15,16 +15,9 @@ pub struct Close<'info> {
     )]
     pub pool: Account<'info, Pool>,
 
-    /// Pages for entries
-    #[account(
-        seeds = [b"pages", pool.key().as_ref()],
-        bump,
-    )]
-    pub pages: Account<'info, Pages>,
-
     /// CHECK: Validated manually in handler
     #[account(
-        owner = SWITCHBOARD_PROGRAM_ID
+        owner = ON_DEMAND_MAINNET_PID
     )]
     pub randomness_account_data: AccountInfo<'info>,
 }
@@ -32,6 +25,11 @@ pub struct Close<'info> {
 pub fn close(ctx: Context<Close>) -> Result<()> {
     let clock = Clock::get()?;
     let pool = &mut ctx.accounts.pool;
+
+    let now = clock.unix_timestamp;
+    let expected_day_id = now / 86_400;
+    require!(pool.day_id < expected_day_id, ErrorCode::BadDayId);
+
     if pool.status == 1 {
         // if last attempt to resolve failed (longer then 30 slots ago), allow retry
         if clock.slot < pool.close_slot + 30 {
@@ -46,7 +44,7 @@ pub fn close(ctx: Context<Close>) -> Result<()> {
         pool.status = 4;
         return Ok(());
     }
-    
+
     let randomness_data = RandomnessAccountData::parse(
         ctx.accounts.randomness_account_data.data.borrow()
     ).map_err(|_| ErrorCode::InvalidRandomnessAccount)?;
@@ -59,7 +57,7 @@ pub fn close(ctx: Context<Close>) -> Result<()> {
         return Err(ErrorCode::RandomnessAlreadyRevealed.into());
     }
 
-    pool.close_slot = clock.slot;
+    pool.close_slot = randomness_data.seed_slot;
     pool.randomness_account = ctx.accounts.randomness_account_data.key();
 
     Ok(())

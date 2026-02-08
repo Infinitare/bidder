@@ -1,28 +1,40 @@
 "use client";
 
-import { ReactNode } from "react";
-import { QueryCache, QueryClientProvider } from "@tanstack/react-query";
-import { QueryClient } from "@tanstack/query-core";
+import { ReactNode, useMemo } from "react";
+import { QueryCache, QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { toast } from "sonner";
 
-// TODO toasts
 const queryCache = new QueryCache({
   onError: (error) => {
-    console.log(error);
-  },
-  onSuccess: (data) => {
-    // console.log(data);
-  },
-  onSettled: (data, error) => {
-    // console.log(data, error);
+    toast.error(error?.message || "Something went wrong");
   },
 });
 
 const queryClient = new QueryClient({
   queryCache,
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24,
+    },
+  },
 });
 
 export default function QueryProvider({ children }: { children: ReactNode }) {
+  const persister = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
+    return createAsyncStoragePersister({
+      storage: window.localStorage,
+    });
+  }, []);
+
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: persister! }}
+    >
+      {children}
+    </PersistQueryClientProvider>
   );
 }

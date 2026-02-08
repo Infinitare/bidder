@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::{account};
 
 pub const FEE_ACCOUNT: Pubkey = pubkey!("TjgnAqExKJKAGmWKxr5sKuZE648nwvqYE8c4MQVqbdr");
-pub const RESOLVER_STATIC_FEE: u64 = 1;
+pub const RESOLVER_STATIC_FEE: u64 = 20000000;
 pub const SERVICE_FEE_BPS: u64 = 100; // 1%
 
 #[error_code]
@@ -28,7 +28,7 @@ pub enum ErrorCode {
     #[msg("The provided winner account is incorrect")]
     WrongWinnerAccount,
 
-    #[msg("The randomness has already been revealed")]
+    #[msg("The randomness has already expired")]
     RandomnessExpired,
 
     #[msg("The randomness has already been revealed")]
@@ -49,6 +49,7 @@ pub struct Pool {
     pub status: u8,
     pub total_entries: u64,
     pub current_page: u64,
+    pub day_id: i64,
     pub close_slot: u64,
     pub randomness_account: Pubkey,
     pub winning_entry: u64,
@@ -56,7 +57,7 @@ pub struct Pool {
     pub winner: Pubkey,
 }
 
-pub const POOL_SIZE: usize = 8 + 1 + 8 + 8 + 8 + 32 + 8 + 8 + 32;
+pub const POOL_SIZE: usize = 8 + 1 + 8 + 8 + 8 + 8 + 32 + 8 + 8 + 32;
 
 #[account]
 pub struct Pages {

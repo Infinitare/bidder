@@ -24,25 +24,23 @@ import useRpcContext from "@/components/provider/rpc-provider";
 import { useWalletDisconnectButton } from "@solana/wallet-adapter-base-ui";
 import { useMutation } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  useAnchorWallet,
-  useConnection,
-  useWallet,
-} from "@solana/wallet-adapter-react";
-import {
-  PublicKey,
-  SystemProgram,
-  TransactionConfirmationStrategy,
-} from "@solana/web3.js";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import BN from "bn.js";
+import { toast } from "sonner";
 
 export default function BidDialog() {
-  const { sendTransaction } = useWallet();
-  const { connection } = useConnection();
   const wallet = useAnchorWallet();
   const { onButtonClick } = useWalletDisconnectButton();
-  const { program, solPrice, getPoolAddressAndDay } = useRpcContext();
+  const {
+    program,
+    solPrice,
+    getPoolAddressAndDay,
+    sendAndConfirmTx,
+    refetchPoolSize,
+    refetchUserInvest,
+  } = useRpcContext();
 
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -62,7 +60,7 @@ export default function BidDialog() {
     }
   };
 
-  let formattedUsd = new Intl.NumberFormat("en-US", {
+  const formattedUsd = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2,
@@ -80,6 +78,11 @@ export default function BidDialog() {
       const signer = wallet.publicKey;
       const [poolPda, dayId] = getPoolAddressAndDay();
 
+      const [vaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), poolPda.toBuffer()],
+        program.programId
+      );
+
       const [pagesPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("pages"), poolPda.toBuffer()],
         program.programId
@@ -90,10 +93,9 @@ export default function BidDialog() {
         program.programId
       );
 
-      // @ts-ignore
-      const poolAccount: any = await program.account.pool.fetchNullable(
-        poolPda
-      );
+      const poolAccount: { currentPage: number } | null =
+        // @ts-expect-error pool account is not typed
+        await program.account.pool.fetchNullable(poolPda);
       const currentPage = poolAccount?.currentPage || 0;
 
       const currentPageBuffer = Buffer.alloc(8);
@@ -104,14 +106,14 @@ export default function BidDialog() {
         program.programId
       );
 
-      console.log(pagePda, userPda, pagesPda, poolPda);
-      const amountBN = new BN(amountNumber);
+      const amountBN = new BN(amountNumber * 1e9);
       const dayIdBN = new BN(dayId);
       const tx = await program.methods
         .entry(amountBN, dayIdBN)
         .accounts({
           signer,
           pool: poolPda,
+          vault: vaultPda,
           pages: pagesPda,
           page: pagePda,
           user: userPda,
@@ -119,26 +121,26 @@ export default function BidDialog() {
         })
         .transaction();
 
-      const txSig = await sendTransaction(tx, connection);
-      const confirmation = await connection.confirmTransaction(
-        {
-          signature: txSig,
-        } as TransactionConfirmationStrategy,
-        connection.commitment
-      );
-
-      if (confirmation.value.err) {
-        throw new Error(
-          `Transaction failed: ${confirmation.value.err.toString()}`
-        );
-      }
-
-      // TODO add toast
-      console.log("Transaction successful with signature:", txSig);
+      const txSig = await sendAndConfirmTx(tx);
+      await Promise.any([refetchPoolSize(), refetchUserInvest()]);
+      toast.success("Transaction confirmed! " + txSig, {
+        description: (
+          <div>
+            Your bid has been successfully placed.
+            <a
+              className={"text-sm underline-offset-4 hover:underline"}
+              href={"https://solscan.io/tx/" + txSig}
+              target={"_blank"}
+            >
+              View on Solscan
+            </a>
+          </div>
+        ),
+      });
       setOpen(false);
     },
     onError: (error) => {
-      // TODO add toast
+      toast.error("Transaction failed: " + error.message);
       console.error("Transaction failed:", error);
     },
   });

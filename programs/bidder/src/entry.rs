@@ -20,6 +20,16 @@ pub struct Entry<'info> {
     )]
     pub pool: Account<'info, Pool>,
 
+    /// CHECK: Current lottery pool vault
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = 0,
+        seeds = [b"vault", pool.key().as_ref()],
+        bump,
+    )]
+    pub vault: UncheckedAccount<'info>,
+
     /// Pages for entries
     #[account(
         init_if_needed,
@@ -94,7 +104,7 @@ pub fn entry(ctx: Context<Entry>, amount: u64, day_id: i64) -> Result<()> {
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
                 from: ctx.accounts.signer.to_account_info(),
-                to: ctx.accounts.pool.to_account_info(),
+                to: ctx.accounts.vault.to_account_info(),
             },
         ),
         amount,
@@ -104,8 +114,11 @@ pub fn entry(ctx: Context<Entry>, amount: u64, day_id: i64) -> Result<()> {
     user.entries = user.entries.checked_add(amount).ok_or(ErrorCode::Overflow)?;
 
     let pool = &mut ctx.accounts.pool;
-    let page = &mut ctx.accounts.page;
+    if pool.day_id == 0 {
+        pool.day_id = day_id;
+    }
 
+    let page = &mut ctx.accounts.page;
     if page.entries.is_empty() {
         page.offset_entries = pool.total_entries;
     }

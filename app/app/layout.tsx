@@ -6,6 +6,7 @@ import QueryProvider from "@/components/provider/query-provider";
 import { RpcProvider } from "@/components/provider/rpc-provider";
 import WalletProvider from "@/components/provider/wallet-provider";
 import ThemeProvider from "@/components/provider/theme-provider";
+import { Toaster } from "sonner";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -44,6 +45,7 @@ export default function RootLayout({
               <RpcProvider>{children}</RpcProvider>
             </WalletProvider>
           </QueryProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

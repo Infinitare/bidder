@@ -10,9 +10,19 @@ pub struct Payout<'info> {
     /// Current lottery pool
     #[account(
         mut,
+        seeds = [b"pool", pool.day_id.to_le_bytes().as_ref()],
+        bump,
         constraint = pool.status == 3 @ ErrorCode::PoolClosed,
     )]
     pub pool: Account<'info, Pool>,
+
+    /// CHECK: Current lottery pool vault
+    #[account(
+        mut,
+        seeds = [b"vault", pool.key().as_ref()],
+        bump,
+    )]
+    pub vault: SystemAccount<'info>,
 
     /// Current lottery pool
     #[account(
@@ -33,11 +43,12 @@ pub struct Payout<'info> {
 
 pub fn payout(ctx: Context<Payout>) -> Result<()> {
     let pool = &mut ctx.accounts.pool;
+    let vault = &mut ctx.accounts.vault;
     let winner = &mut ctx.accounts.winner;
     let fee = &mut ctx.accounts.fee;
     let signer = &mut ctx.accounts.signer;
 
-    let mut total_amount = pool.total_entries;
+    let mut total_amount = vault.lamports();
     pool.status = 4;
 
     if total_amount == 0 {
@@ -50,18 +61,26 @@ pub fn payout(ctx: Context<Payout>) -> Result<()> {
         RESOLVER_STATIC_FEE
     };
 
+    let day_id = pool.day_id.to_le_bytes();
+    let seeds: &[&[u8]] = &[
+        b"pool",
+        day_id.as_ref(),
+        &[ctx.bumps.pool],
+    ];
+
     anchor_lang::system_program::transfer(
-        CpiContext::new(
+        CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
-                from: pool.to_account_info(),
+                from: vault.to_account_info(),
                 to: signer.to_account_info(),
             },
+            &[seeds],
         ),
         resolver_fee,
     )?;
 
-    total_amount = total_amount.saturating_sub(resolver_fee);
+    total_amount = vault.lamports();
     if total_amount == 0 {
         return Ok(());
     }
@@ -77,28 +96,30 @@ pub fn payout(ctx: Context<Payout>) -> Result<()> {
     };
 
     anchor_lang::system_program::transfer(
-        CpiContext::new(
+        CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
-                from: pool.to_account_info(),
+                from: vault.to_account_info(),
                 to: fee.to_account_info(),
             },
+            &[seeds],
         ),
         service_fee,
     )?;
 
-    total_amount = total_amount.saturating_sub(service_fee);
+    total_amount = vault.lamports();
     if total_amount == 0 {
         return Ok(());
     }
 
     anchor_lang::system_program::transfer(
-        CpiContext::new(
+        CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
-                from: pool.to_account_info(),
+                from: vault.to_account_info(),
                 to: winner.to_account_info(),
             },
+            &[seeds],
         ),
         total_amount,
     )?;
