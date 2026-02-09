@@ -66,7 +66,7 @@ pub struct Pool {
 pub const POOL_SIZE: usize = 8 + 1 + 8 + 8 + 8 + 8 + 32 + 8 + 8 + 32;
 
 #[account]
-#[derive(Default,)]
+#[derive(Default)]
 pub struct Pages {
     pub entries: Vec<u64>,
 }

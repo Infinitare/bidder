@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{transfer};
+use anchor_lang::system_program::transfer;
 use crate::states::{Pool, User, POOL_SIZE, USER_SIZE, PAGE_BASE, PAGES_BASE, ErrorCode, Page, PAGE_ENTRY, Pages, PAGES_ENTRY, PageEntry};
 
 #[derive(Accounts)]
@@ -25,7 +25,6 @@ pub struct Entry<'info> {
         init_if_needed,
         payer = signer,
         space = 0,
-        owner = system_program::ID,
         seeds = [b"vault", pool.key().as_ref()],
         bump,
     )]
@@ -34,14 +33,7 @@ pub struct Entry<'info> {
     /// Pages for entries
     #[account(
         init_if_needed,
-        space = {
-            let data = pages.data.borrow();
-            if !data.is_empty() {
-                data.len()
-            } else {
-                PAGES_BASE
-            }
-        },
+        space = PAGES_BASE,
         payer = signer,
         seeds = [b"pages", pool.key().as_ref()],
         bump,
@@ -51,14 +43,7 @@ pub struct Entry<'info> {
     /// Current page for entries
     #[account(
         init_if_needed,
-        space = {
-            let data = page.data.borrow();
-            if !data.is_empty() {
-                data.len()
-            } else {
-                PAGE_BASE
-            }
-        },
+        space = PAGE_BASE,
         payer = signer,
         seeds = [b"page", pool.key().as_ref(), pool.current_page.to_le_bytes().as_ref()],
         bump,
