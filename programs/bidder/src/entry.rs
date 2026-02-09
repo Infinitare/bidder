@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{create_account, transfer};
+use anchor_lang::system_program::{transfer};
 use crate::states::{Pool, User, POOL_SIZE, USER_SIZE, PAGE_BASE, PAGES_BASE, ErrorCode, Page, PAGE_ENTRY, Pages, PAGES_ENTRY, PageEntry};
 
 #[derive(Accounts)]
@@ -25,6 +25,7 @@ pub struct Entry<'info> {
         init_if_needed,
         payer = signer,
         space = 0,
+        owner = system_program::ID,
         seeds = [b"vault", pool.key().as_ref()],
         bump,
     )]
@@ -32,7 +33,16 @@ pub struct Entry<'info> {
 
     /// Pages for entries
     #[account(
-        mut,
+        init_if_needed,
+        space = {
+            let data = pages.data.borrow();
+            if !data.is_empty() {
+                data.len()
+            } else {
+                PAGES_BASE
+            }
+        },
+        payer = signer,
         seeds = [b"pages", pool.key().as_ref()],
         bump,
     )]
@@ -40,7 +50,16 @@ pub struct Entry<'info> {
 
     /// Current page for entries
     #[account(
-        mut,
+        init_if_needed,
+        space = {
+            let data = page.data.borrow();
+            if !data.is_empty() {
+                data.len()
+            } else {
+                PAGE_BASE
+            }
+        },
+        payer = signer,
         seeds = [b"page", pool.key().as_ref(), pool.current_page.to_le_bytes().as_ref()],
         bump,
         constraint = page.entries.len() < 100 @ ErrorCode::PageFull
@@ -58,42 +77,6 @@ pub struct Entry<'info> {
     pub user: Account<'info, User>,
 
     pub system_program: Program<'info, System>,
-}
-
-fn init_account_if_needed<'info, T: AnchorSerialize + AnchorDeserialize + Discriminator + Owner + Default>(
-    payer: &AccountInfo<'info>,
-    acct: &AccountInfo<'info>,
-    system_program: &AccountInfo<'info>,
-    space: usize,
-) -> Result<()> {
-    if acct.owner == &crate::ID {
-        // already initialized
-        return Ok(());
-    }
-
-    require!(acct.owner == &system_program::ID, ErrorCode::InvalidAccountOwner);
-    require!(acct.data_len() == 0, ErrorCode::InvalidAccountState);
-
-    let rent = Rent::get()?;
-    let lamports = rent.minimum_balance(space);
-
-    let ix = anchor_lang::system_program::CreateAccount {
-        from: payer.clone(),
-        to: acct.clone(),
-    };
-
-    create_account(
-        CpiContext::new(system_program.clone(), ix),
-        lamports,
-        space as u64,
-        &crate::ID,
-    )?;
-
-    let mut data = acct.try_borrow_mut_data()?;
-    let mut cursor = std::io::Cursor::new(&mut data[..]);
-    let v = T::default();
-    v.serialize(&mut cursor)?;
-    Ok(())
 }
 
 fn realloc_to_fit<'info>(
@@ -130,23 +113,6 @@ pub fn entry(ctx: Context<Entry>, amount: u64, day_id: i64) -> Result<()> {
     let expected_day_id = now / 86_400;
     require!(day_id == expected_day_id, ErrorCode::BadDayId);
     require!(amount > 0, ErrorCode::InvalidAmount);
-
-    init_account_if_needed::<Pages>(
-        &ctx.accounts.signer.to_account_info(),
-        &ctx.accounts.pages.to_account_info(),
-        &ctx.accounts.system_program.to_account_info(),
-        PAGES_BASE,
-    )?;
-
-    init_account_if_needed::<Page>(
-        &ctx.accounts.signer.to_account_info(),
-        &ctx.accounts.page.to_account_info(),
-        &ctx.accounts.system_program.to_account_info(),
-        PAGE_BASE,
-    )?;
-
-    ctx.accounts.pages.reload()?;
-    ctx.accounts.page.reload()?;
 
     transfer(
         CpiContext::new(
@@ -200,6 +166,7 @@ pub fn entry(ctx: Context<Entry>, amount: u64, day_id: i64) -> Result<()> {
                 &ctx.accounts.system_program.to_account_info(),
                 new_size
             )?;
+
             pages.entries.push(amount);
         }
     }

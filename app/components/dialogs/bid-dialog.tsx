@@ -141,7 +141,7 @@ export default function BidDialog() {
       setOpen(false);
     },
     onError: (error) => {
-      toast.error("Transaction failed: " + error.message);
+      toast.error("Transaction failed. Please try again.");
       console.error("Transaction failed:", error);
     },
   });
