@@ -320,7 +320,7 @@ export default function LastPoolDialog() {
           }
         >
           Last Pool:{" "}
-          {!lastPool?.status
+          {!lastPool?.status && lastPool?.status !== 0
             ? "Unknown"
             : lastPool.status === 4
             ? "Resolved"
@@ -331,7 +331,7 @@ export default function LastPoolDialog() {
         <DialogHeader>
           <DialogTitle>
             Last Pool:{" "}
-            {!lastPool?.status
+            {!lastPool?.status && lastPool?.status !== 0
               ? "Unknown"
               : lastPool.status === 4
               ? "Resolved"
