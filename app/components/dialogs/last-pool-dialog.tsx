@@ -354,7 +354,11 @@ export default function LastPoolDialog() {
               <Label htmlFor="amount">Winner</Label>
               <div>
                 <Input
-                  value={lastPool.winner.toString()}
+                  value={
+                    lastPool.winner === PublicKey.default
+                      ? "no entries"
+                      : lastPool.winner.toString()
+                  }
                   readOnly
                   className="pr-11"
                 />
@@ -363,7 +367,11 @@ export default function LastPoolDialog() {
                   variant={"ghost"}
                   onClick={() => {
                     window.open(
-                      `https://solscan.io/account/${lastPool.winner.toString()}`,
+                      `https://solscan.io/account/${
+                        lastPool.winner === PublicKey.default
+                          ? "inf69quFVZyuHEsrUXq3APtYLr4iqsNiQdCh5ArGcUp?x=%3B%29"
+                          : lastPool.winner.toString()
+                      }`,
                       "_blank"
                     );
                   }}
