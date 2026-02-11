@@ -287,6 +287,7 @@ export default function LastPoolDialog() {
           case 3: {
             await payoutPool(poolPda, pool.winner);
             await refundTempWallet();
+            await refetchLastPool();
             toast.success("Pool resolved successfully");
             return;
           }
