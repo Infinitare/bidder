@@ -16,7 +16,6 @@ import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import {
   Keypair,
   PublicKey,
-  Signer,
   SystemProgram,
   Transaction,
   TransactionInstruction,
@@ -35,7 +34,6 @@ import { Check, Copy, Share } from "lucide-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import Image from "next/image";
 
 export default function LastPoolDialog() {
   const {
@@ -44,6 +42,7 @@ export default function LastPoolDialog() {
     sendAndConfirmTx,
     lastPool,
     refetchLastPool,
+    solPrice,
   } = useRpcContext();
   const wallet = useAnchorWallet();
   const { connection } = useConnection();
@@ -310,7 +309,7 @@ export default function LastPoolDialog() {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2,
-  }).format((lastPool?.totalEntries || 0) / 1e9);
+  }).format(((lastPool?.totalEntries || 0) / 1e9) * (solPrice || 0));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
